@@ -1,75 +1,73 @@
-import os 
-import shutil 
+import os
+import shutil
+import re
 
-# Define the categories and subcategories 
-categories = { 
-    'Programs': ['.exe', '.msi', '.dmg'], 
-    'Documents': ['.doc', '.docx', '.pdf', '.txt'], 
-    'Images': ['.jpg', '.jpeg', '.png', '.gif'], 
-    'Audio': ['.mp3', '.wav', '.aac'], 
-    'Video': ['.mp4', '.mov', '.avi', '.mkv'], 
-    'Compressed': ['.zip', '.rar', '.7z'], 
+# Define the categories and subcategories
+categories = {
+    'Browser': ['.exe', '.dmg'],
+    'Programs': ['.msi', '.dmg', '.pkg'],
+    'Operating System Install': ['.iso'],
+    'Documents': ['.doc', '.docx', '.pdf', '.txt'],
+    'Images': ['.jpg', '.jpeg', '.png', '.gif'],
+    'Audio': ['.mp3', '.wav', '.aac'],
+    'Video': ['.mp4', '.mov', '.avi', '.mkv'],
+    'Compressed': ['.zip', '.rar', '.7z'],
+    'Emails': ['.eml', '.msg'],
 }
 
-subcategories = { 
-    'Programs': ['Browsers', 'Microsoft Office', 'Adobe Creative Suite'], 
-    'Documents': ['Resumes', 'Invoices', 'Reports'], 
-    'Images': ['Wallpapers', 'Screenshots', 'Photographs'], 
-    'Audio': ['Music', 'Podcasts', 'Audiobooks'], 
-    'Video': ['Movies', 'TV Shows', 'Youtube Videos'], 
-    'Compressed': ['Software Downloads', 'Backups'], 
+# Define the subcategories
+subcategories = {
+    'Browser': ['Chrome', 'Firefox', 'Safari', 'Opera'],
+    'Programs': ['Microsoft Office', 'Adobe Creative Suite', 'Productivity', 'Media'],
+    'Operating System Install': ['Windows', 'MacOS', 'Linux'],
+    'Documents': ['Resumes', 'Invoices', 'Reports', 'School Work', 'Personal'],
+    'Images': ['Wallpapers', 'Screenshots', 'Photographs', 'Icons'],
+    'Audio': ['Music', 'Podcasts', 'Audiobooks'],
+    'Video': ['Movies', 'TV Shows', 'Youtube Videos'],
+    'Compressed': ['Software Downloads', 'Backups'],
+    'Emails': ['Work', 'Personal'],
 }
 
-# Get the current working directory 
-cwd = os.getcwd() 
+# Get the current working directory
+cwd = os.getcwd()
 
-# Loop through all files in the current working directory 
+# Loop through all files in the current working directory
 for filename in os.listdir(cwd):
     file_extension = os.path.splitext(filename)[1]
-    file_path = os.path.join(cwd, filename)
 
-    # Check if the file extension matches a category 
+    # Check if the file extension matches a category
     for category, extensions in categories.items():
         if file_extension in extensions:
-            # Create the category directory if it doesn't exist 
+            # Create the category directory if it doesn't exist
             category_dir = os.path.join(cwd, category)
             if not os.path.exists(category_dir):
                 os.makedirs(category_dir)
 
-            # If the category is 'Programs', add a subcategory directory 
-            if category == 'Programs':
-                program_name = None
+            # Determine the subcategory based on file contents
+            subcategory = None
+            if category == 'Browser':
+                for browser in subcategories['Browser']:
+                    if browser.lower() in filename.lower():
+                        subcategory = browser
+                        break
+            elif category == 'Emails':
+                with open(os.path.join(cwd, filename), 'r') as f:
+                    contents = f.read()
+                    for email in subcategories['Emails']:
+                        if email.lower() in contents.lower():
+                            subcategory = email
+                            break
 
-                # Check if the file is a browser and assign it to the 'Browsers' subcategory 
-                for line in open(file_path, 'rb'):
-                    if b'Chrome' in line:
-                        program_name = 'Chrome'
-                        break
-                    elif b'Firefox' in line:
-                        program_name = 'Firefox'
-                        break
-                    elif b'Safari' in line:
-                        program_name = 'Safari'
-                        break
-                    elif b'Opera' in line:
-                        program_name = 'Opera'
-                        break
+            # If the subcategory is not determined by file contents, choose a default subcategory
+            if not subcategory:
+                subcategory = subcategories[category][0]
 
-                if program_name is not None:
-                    subcategory_dir = os.path.join(category_dir, 'Browsers', program_name)
-                    if not os.path.exists(subcategory_dir):
-                        os.makedirs(subcategory_dir)
-                else:
-                    # Otherwise, assign it to the 'Programs' subcategory 
-                    subcategory_dir = os.path.join(category_dir, subcategories[category][0])
-                    if not os.path.exists(subcategory_dir):
-                        os.makedirs(subcategory_dir)
-            else:
-                # For other categories, assign the file to the first subcategory 
-                subcategory_dir = os.path.join(category_dir, subcategories[category][0])
-                if not os.path.exists(subcategory_dir):
-                    os.makedirs(subcategory_dir)
+            # Create the subcategory directory if it doesn't exist
+            subcategory_dir = os.path.join(category_dir, subcategory)
+            if not os.path.exists(subcategory_dir):
+                os.makedirs(subcategory_dir)
 
-            # Move the file to the subcategory directory 
-            new_file_path = os.path.join(subcategory_dir, filename) 
+            # Move the file to the subcategory directory
+            file_path = os.path.join(cwd, filename)
+            new_file_path = os.path.join(subcategory_dir, filename)
             shutil.move(file_path, new_file_path)
