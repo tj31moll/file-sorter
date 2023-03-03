@@ -1,35 +1,56 @@
 import os
 import shutil
-import re
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
 
 # Define the categories and subcategories
 categories = {
-    'Browser': ['.exe', '.dmg'],
-    'Programs': ['.msi', '.dmg', '.pkg'],
+    'Programs': ['.exe', '.msi', '.dmg'],
     'Operating System Install': ['.iso'],
-    'Documents': ['.doc', '.docx', '.pdf', '.txt'],
     'Images': ['.jpg', '.jpeg', '.png', '.gif'],
     'Audio': ['.mp3', '.wav', '.aac'],
     'Video': ['.mp4', '.mov', '.avi', '.mkv'],
     'Compressed': ['.zip', '.rar', '.7z'],
-    'Emails': ['.eml', '.msg'],
+    'Emails': ['.eml'],
+    'Documents': ['.doc', '.docx', '.pdf', '.txt']
 }
 
 # Define the subcategories
 subcategories = {
-    'Browser': ['Chrome', 'Firefox', 'Safari', 'Opera'],
-    'Programs': ['Microsoft Office', 'Adobe Creative Suite', 'Productivity', 'Media'],
+    'Programs': ['Browsers', 'Microsoft Office', 'Adobe Creative Suite'],
     'Operating System Install': ['Windows', 'MacOS', 'Linux'],
-    'Documents': ['Resumes', 'Invoices', 'Reports', 'School Work', 'Personal'],
-    'Images': ['Wallpapers', 'Screenshots', 'Photographs', 'Icons'],
+    'Images': ['Wallpapers', 'Screenshots', 'Photographs'],
     'Audio': ['Music', 'Podcasts', 'Audiobooks'],
     'Video': ['Movies', 'TV Shows', 'Youtube Videos'],
     'Compressed': ['Software Downloads', 'Backups'],
-    'Emails': ['Work', 'Personal'],
+    'Emails': ['Inbox', 'Sent', 'Spam'],
+    'Documents': ['Resumes', 'Invoices', 'Reports']
 }
 
 # Get the current working directory
 cwd = os.getcwd()
+
+# Initialize the count vectorizer and decision tree classifier
+vectorizer = CountVectorizer()
+clf = DecisionTreeClassifier()
+
+# Train the classifier on the documents in the Documents category
+documents_dir = os.path.join(cwd, 'Documents')
+documents = []
+labels = []
+for subcategory in subcategories['Documents']:
+    subcategory_dir = os.path.join(documents_dir, subcategory)
+    for filename in os.listdir(subcategory_dir):
+        file_path = os.path.join(subcategory_dir, filename)
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            document = f.read()
+            documents.append(document)
+            labels.append(subcategory)
+
+X = vectorizer.fit_transform(documents)
+y = labels
+clf.fit(X, y)
 
 # Loop through all files in the current working directory
 for filename in os.listdir(cwd):
@@ -43,24 +64,12 @@ for filename in os.listdir(cwd):
             if not os.path.exists(category_dir):
                 os.makedirs(category_dir)
 
-            # Determine the subcategory based on file contents
-            subcategory = None
-            if category == 'Browser':
-                for browser in subcategories['Browser']:
-                    if browser.lower() in filename.lower():
-                        subcategory = browser
-                        break
-            elif category == 'Emails':
-                with open(os.path.join(cwd, filename), 'r') as f:
-                    contents = f.read()
-                    for email in subcategories['Emails']:
-                        if email.lower() in contents.lower():
-                            subcategory = email
-                            break
-
-            # If the subcategory is not determined by file contents, choose a default subcategory
-            if not subcategory:
-                subcategory = subcategories[category][0]
+            # Get the file content and predict the subcategory using the trained classifier
+            file_path = os.path.join(cwd, filename)
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                document = f.read()
+                X_test = vectorizer.transform([document])
+                subcategory = clf.predict(X_test)[0]
 
             # Create the subcategory directory if it doesn't exist
             subcategory_dir = os.path.join(category_dir, subcategory)
@@ -68,6 +77,4 @@ for filename in os.listdir(cwd):
                 os.makedirs(subcategory_dir)
 
             # Move the file to the subcategory directory
-            file_path = os.path.join(cwd, filename)
-            new_file_path = os.path.join(subcategory_dir, filename)
-            shutil.move(file_path, new_file_path)
+            shutil.move(file_path, subcategory_dir)
