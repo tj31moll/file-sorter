@@ -13,7 +13,7 @@ categories = {
     'Video': ['.mp4', '.mov', '.avi', '.mkv'],
     'Compressed': ['.zip', '.rar', '.7z'],
     'Emails': ['.eml'],
-    'Documents': ['.doc', '.docx', '.pdf', '.txt']
+    'Documents': ['.doc', '.docx', '.pdf', '.txt', '.odt', '.ppt', '.pptx', '.xls', '.xlsx', '.csv']
 }
 
 # Define the subcategories
@@ -77,4 +77,4 @@ for filename in os.listdir(cwd):
                 os.makedirs(subcategory_dir)
 
             # Move the file to the subcategory directory
-            shutil.move(file_path, subcategory_dir)
+            shutil.move(file_path, os.path.join(subcategory_dir, filename))
